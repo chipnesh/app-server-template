@@ -1,0 +1,48 @@
+#file: noinspection KubernetesUnknownKeys
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ${{values.component_id | dump}}
+  {%- if values.description %}
+  description: ${{values.description | dump}}
+  {%- endif %}
+  annotations:
+    github.com/project-slug: ${{values.destination.owner + "/" + values.destination.repo}}
+    backstage.io/techdocs-ref: dir:.
+    'backstage.io/kubernetes-id': ${{values.component_id | dump}}
+    'backstage.io/adr-location': /adrs
+    'backstage.io/source-location': url:${{'https://' + values.destination.host + '/' + values.destination.owner + '/' + values.destination.repo + '/blob/master/'}}
+    'jfrog.com/artifactory-artifact': ${{values.component_id + '-api'}}
+    'jfrog.com/artifactory-repo': 'test'
+    'jfrog.com/artifactory-group': 'com.company'
+    'jfrog.com/artifactory-scope': 'compile'
+  links:
+    - url: https://dashboard.example.com
+      title: Bitbucket
+      icon: dashboard
+spec:
+  type: service
+  lifecycle: experimental
+  owner: ${{values.owner | dump}}
+#  system:
+#  domain:
+  providesApis:
+    - ${{values.component_id +'-api' }}
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ${{values.component_id + '-api'}}
+  title: ${{values.component_id + ' API'}}
+  description: |
+    This is an API ${{values.component_id | dump}} OpenAPI 3.0 specification.
+  links:
+    - title: ${{values.component_id + ' API'}}
+      url: https://localhost:8080/openapi.json
+spec:
+  type: openapi
+  system: infrastructure
+  owner: ${{values.owner | dump}}
+  lifecycle: experimental
+  definition:
+    $text: ${{'https://' + values.destination.host + '/' + values.destination.owner + '/' + values.destination.repo + '/blob/master/src/main/resources/openapi/documentation.yaml'}}

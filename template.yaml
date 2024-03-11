@@ -1,0 +1,100 @@
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: back-server-template
+  title: Backend Service
+  description: Create backend service using company stack
+  tags:
+    - recommended
+    - kotlin
+    - back
+spec:
+  owner: platform
+  type: service
+
+  parameters:
+    - title: Provide service info
+      required:
+        - artifact_id
+        - owner
+        - package_name
+      properties:
+        artifact_id:
+          title: Name
+          type: string
+          description: Unique name of the component
+          ui:field: EntityNamePicker
+        package_name:
+          title: Kotlin Package Name
+          type: string
+          description: Name for the target kotlin package. eg (com.company.THIS)
+        description:
+          title: Description
+          type: string
+          description: Help others understand what this website is for.
+        owner:
+          title: Owner
+          type: string
+          description: Owner of the component
+          ui:field: OwnerPicker
+          ui:options:
+            allowArbitraryValues: false
+            catalogFilter:
+              kind: [Group, User]
+              spec.type: team
+
+    - title: Choose a location
+      required:
+        - repoUrl
+      properties:
+        repoUrl:
+          title: Repository Location
+          type: string
+          ui:field: RepoUrlPicker
+          ui:options:
+            allowedHosts:
+              - github.com
+            allowedOwners:
+              - trading
+              - chipnesh
+
+  steps:
+    - id: template
+      name: Fetch Template
+      action: fetch:template
+      input:
+        url: ./template
+        copyWithoutRender:
+          - .github/workflows/*
+        values:
+          component_id: ${{ parameters.artifact_id }}
+          description: ${{ parameters.description }}
+          artifact_id: ${{ parameters.artifact_id }}
+          package_name: ${{ parameters.package_name }}
+          owner: ${{ parameters.owner }}
+          destination: ${{ parameters.repoUrl | parseRepoUrl }}
+          http_port: 8080
+
+    - id: publish
+      name: Publish
+      action: publish:github
+      input:
+        allowedHosts: ["github.com"]
+        description: This is ${{ parameters.component_id }}
+        repoUrl: ${{ parameters.repoUrl }}
+        topics: ["backstage-include"]
+
+    - id: register
+      name: Register
+      action: catalog:register
+      input:
+        repoContentsUrl: ${{ steps.publish.output.repoContentsUrl }}
+        catalogInfoPath: "/catalog-info.yaml"
+
+  output:
+    links:
+      - title: Repository
+        url: ${{ steps.publish.output.remoteUrl }}
+      - title: Open in catalog
+        icon: catalog
+        entityRef: ${{ steps.register.output.entityRef }}
